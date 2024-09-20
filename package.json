@@ -1,0 +1,16 @@
+{
+  "name": "scraper_project",
+  "version": "1.0.0",
+  "description": "Web scraper with Puppeteer, and OpenAI integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.10",
+    "dotenv": "^16.4.5",
+    "mongodb": "^4.0.0",
+    "openai": "^3.0.0",
+    "puppeteer": "^19.0.0"
+  }
+}
