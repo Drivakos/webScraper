@@ -9,6 +9,7 @@ const { URL } = require('url');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const readline = require('readline');
 
 // OpenAI Setup
 const configuration = new Configuration({
@@ -282,7 +283,112 @@ async function main() {
     await processUrls(urlsToProcess);
 }
 
-main().catch(error => {
-    console.error('An unexpected error occurred:', error.message);
-    process.exit(1);
+async function clearDirectory(directory, progressBar) {
+    try {
+        const files = await fs.readdir(directory);
+        for (const file of files) {
+            const filePath = path.join(directory, file);
+            const fileStat = await fs.stat(filePath);
+
+            if (fileStat.isDirectory()) {
+                await clearDirectory(filePath, progressBar); // Recursively clear subdirectories
+            } else {
+                await fs.unlink(filePath); // Delete the file
+                progressBar.increment(); // Increment progress after each file is deleted
+            }
+        }
+        console.log(`Directory contents cleared: ${directory}`);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.log(`Directory not found: ${directory}`);
+        } else {
+            console.error(`Error clearing directory ${directory}:`, error.message);
+        }
+    }
+}
+
+// Function to clear all saved data directories: extractedData, scripts, html
+async function clearAllData() {
+    const directories = ['extractedData', 'scripts', 'html'];
+
+    // Count total number of files across all directories
+    let totalFiles = 0;
+    for (const dir of directories) {
+        const fullPath = path.join(__dirname, dir);
+        totalFiles += await countFiles(fullPath); // Count total files to delete
+    }
+
+    // Initialize progress bar
+    const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    progressBar.start(totalFiles, 0); // Start progress bar with total file count
+
+    for (const dir of directories) {
+        const fullPath = path.join(__dirname, dir);
+        await clearDirectory(fullPath, progressBar); // Clear files and update progress
+    }
+
+    progressBar.stop(); // Stop the progress bar when done
+    console.log('All data cleared.');
+}
+
+// Function to count the total number of files in a directory (recursively)
+async function countFiles(directory) {
+    try {
+        const files = await fs.readdir(directory);
+        let totalFiles = 0;
+        for (const file of files) {
+            const filePath = path.join(directory, file);
+            const fileStat = await fs.stat(filePath);
+
+            if (fileStat.isDirectory()) {
+                totalFiles += await countFiles(filePath); // Recursively count files in subdirectories
+            } else {
+                totalFiles++; // Count the file
+            }
+        }
+        return totalFiles;
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return 0; // Directory doesn't exist, return 0
+        }
+        console.error(`Error counting files in directory ${directory}:`, error.message);
+        return 0;
+    }
+}
+
+function displayMenu() {
+    console.log("\nCLI Options:");
+    console.log("1: Start Scraping");
+    console.log("2: Clear Generated Files");
+    console.log("3: Exit");
+}
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
 });
+
+function handleUserInput(input) {
+    switch (input.trim()) {
+        case '1':
+            main().then(() => {
+                displayMenu();
+            });
+            break;
+        case '2':
+            clearAllData().then(() => {
+                displayMenu();
+            });
+            break;
+        case '3':
+            console.log('Exiting...');
+            rl.close();
+            break;
+        default:
+            console.log('Invalid option. Please select 1, 2, or 3.');
+            displayMenu();
+    }
+}
+
+displayMenu();
+rl.on('line', handleUserInput);
