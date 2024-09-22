@@ -1,10 +1,10 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const { MongoClient } = require('mongodb');
 const { Configuration, OpenAIApi } = require('openai');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const cliProgress = require('cli-progress');
 
 // OpenAI Setup
 const configuration = new Configuration({
@@ -12,17 +12,32 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-// Function to scrape a website using Puppeteer
 async function scrapeWithPuppeteer(url) {
     const browser = await puppeteer.launch({ headless: "new" });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    const bodyContent = await page.evaluate(() => {
-        return document.querySelector('body').innerHTML;
-    });
+    const fullHtml = await page.evaluate(() => document.querySelector('html').innerHTML);
+    const $ = cheerio.load(fullHtml);
+    $('script, meta, link, noscript').remove();
+    const mainContent = $('main').html() || '';
+
     await browser.close();
-    return bodyContent;
+    await saveFullHtml(url, $.html()); // Save the cleaned version of the full HTML
+
+    return limitHtmlSize(mainContent, 3000);
+}
+
+// Function to save the full HTML content to the "html" folder
+async function saveFullHtml(url, cleanedHtml) {
+    const htmlDir = path.join(__dirname, 'html');
+    ensureDirectoryExists(htmlDir);
+
+    const { hostname } = new URL(url);
+    const filename = `body.html`; // Use a different filename to indicate it's cleaned
+    const filePath = path.join(htmlDir, filename);
+    console.log('cleanedHtml is : ', cleanedHtml)
+    fs.writeFileSync(filePath, cleanedHtml, 'utf-8');
 }
 
 // Function to check for relevant content using keyword-based filtering
@@ -35,97 +50,122 @@ function hasRelevantContent(html, contentType) {
     return keywords.some(keyword => html.includes(keyword));
 }
 
-function extractRelevantSections(html, contentType) {
-    const $ = cheerio.load(html);
-    let relevantContent = '';
-
-    // Focus only on the body of the HTML to avoid irrelevant headers and metadata
-    const body = $('body');
-
-    if (contentType.includes('blog articles')) {
-        relevantContent = body.find('article, .blog-post').html();
-    }
-
-    if (contentType.includes('product data')) {
-        relevantContent = body.find('.product, .product-listing, .product-details').html();
-    }
-
-    return relevantContent || body.html().slice(0, 2000);
-}
-
-function chunkHTML(html, maxLength = 2000) {
-    return html.trim().length > maxLength ? html.slice(0, maxLength) : html.trim();
-}
-
-async function analyzeWithOpenAI(htmlSnippet, contentType) {
+// Function to call OpenAI API to generate Puppeteer script
+async function analyzeWithOpenAI(limitedHtmlSnippet, contentType) {
+    const test = path.join(__dirname, '../html/body.html')
+    console.log(test)
     const messages = [
         {
             role: 'system',
-            content: `You are an expert at analyzing HTML and extracting relevant sections based on content type.
-             You generate Puppeteer scripts that help scrape blog articles from the given HTML.`
+            content: `You are an AI assistant that analyzes HTML content and provides Puppeteer scripts for extracting
+             specific content based on content types such as 'blog articles' or 'product data'.`
         },
         {
             role: 'user',
-            content: `
-                Analyze the following HTML and check if it contains ${contentType}:
-                ---- HTML ----
-                ${htmlSnippet}
-                ----------------
-                The content type is "${contentType}" and it relates to blog articles. Specifically, look for sections that contain:
-                - Blog post titles (<h1>, <h2>, <h3>)
-                - Blog post summaries or introductory paragraphs (<p>, <div>)
-                - Links to the full blog posts (<a>)
-                - Blog post images (<img>, <picture>)
+            content: `Analyze the following HTML and determine the best way to extract the content related to 
+            "${contentType}". Generate a Puppeteer script that extracts titles (h1, h2, h3), summaries (p, div), 
+            URLs (a), and images (img). 
+            The Puppeteer script should read the HTML from filePath = path.join(__dirname, '..', 'html', 'body.html');
+            and save the extracted data as JSON to  jsonPath = path.join(__dirname, '..', 'extractedData', 'data.json').
+            the data should be structured as below if possible :
+            "blogPosts": [
+            {
+              "title": "...",
+              "url": "...",
+              "publicationDate": "...",
+              "image": "...",
+              "summary": "...",
+              "readMoreLink": "..."
+            }
+          ]
 
-                Based on your analysis, provide a Puppeteer script that can extract the blog post titles, summaries, URLs, and images from the given HTML.
-                Do not give any comments or any other input, only return the script
+            ---- HTML ----
+            ${limitedHtmlSnippet}
+            ----------------
 
-                If the HTML does not contain relevant blog article information, return "No blog articles found."
-            `
+            Respond only with a valid JavaScript Puppeteer script ready to be executed, no description or explanation.`
         }
     ];
 
     try {
         const response = await openai.createChatCompletion({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o',
             messages: messages,
-            max_tokens: 1000 // Allow more tokens for detailed script responses
+            max_tokens: 2000
         });
 
-        console.log('OpenAI Response:', response.data.choices[0].message.content);
         return response.data.choices[0].message.content.trim();
+
     } catch (error) {
         console.error("Error during OpenAI API call:", error.response ? error.response.data : error.message);
-        return `Error: ${error.response ? error.response.data.error.message : error.message}`;
+        return null;
     }
 }
 
-// Function to save script or data to a file
-async function saveScriptToFile(scriptContent, filename) {
-    const filePath = path.join(__dirname, filename);
-    fs.writeFileSync(filePath, scriptContent, 'utf8');
-    console.log(`Script saved to: ${filePath}`);
+// Function to run the Puppeteer script
+async function runSavedScript(scriptPath) {
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execPromise = util.promisify(exec); // Promisify exec to use async/await
+
+    try {
+        const { stdout, stderr } = await execPromise(`node ${scriptPath}`);
+
+        if (stderr) {
+            console.error('Error executing script:', stderr);
+            return null;
+        }
+
+        return stdout.trim();
+    } catch (error) {
+        console.error('Error running saved Puppeteer script:', error);
+        return null;
+    }
 }
 
-// Function to save data to MongoDB
-async function saveToMongoDB(data) {
-    const client = new MongoClient('mongodb://localhost:27017');
-    await client.connect();
+// Function to save the Puppeteer script under the "scripts" folder
+async function saveScriptToFile(scriptContent, filename) {
+    const scriptsDir = path.join(__dirname, 'scripts');
+    ensureDirectoryExists(scriptsDir);
 
-    const db = client.db('scrapedDataDB');
-    const collection = db.collection('scrapedData');
+    const filePath = path.join(scriptsDir, filename);
+    const cleanedScript = scriptContent
+        .replace(/```javascript/g, '')
+        .replace(/```/g, '')
+        .replace(/This Puppeteer script[\s\S]*$/, '');
 
-    await collection.insertMany(data);
-    await client.close();
+    fs.writeFileSync(filePath, cleanedScript.trim(), 'utf8');
+    console.log(`Script saved to: ${filePath}`);
+
+    return filePath; // Return the script path
+}
+
+// Helper function to ensure a directory exists
+function ensureDirectoryExists(directory) {
+    if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory, { recursive: true });
+    }
+}
+
+function saveAsJson(data, url, contentType) {
+    const dataDir = path.join(__dirname, 'data');
+    ensureDirectoryExists(dataDir);
+
+    const { hostname } = new URL(url);
+    const filename = `${hostname}_${contentType.replace(/\s+/g, '_')}.json`;
+    const filePath = path.join(dataDir, filename);
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    console.log(`Data saved to ${filePath}`);
 }
 
 // Main function to process each URL
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec); // Promisify exec to use async/await
-
 async function processUrls(urls) {
-    await Promise.all(urls.map(async ({ url, content }) => {
+    const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+
+    progressBar.start(urls.length, 0);
+
+    await Promise.all(urls.map(async ({ url, content }, index) => {
         console.log(`Processing URL: ${url} for content type: ${content}`);
 
         if (!process.env.OPENAI_API_KEY) {
@@ -134,71 +174,55 @@ async function processUrls(urls) {
         }
 
         try {
-            // Scrape the website
             const html = await scrapeWithPuppeteer(url);
 
-            // Check for relevant content
-            if (hasRelevantContent(html, content)) {
-                const relevantHtml = extractRelevantSections(html, content);
-                const htmlSnippet = chunkHTML(relevantHtml);
+            // Keep trying to get a valid script from OpenAI
+            let puppeteerScript = null;
+            let attempts = 0;
 
-                // Send to OpenAI for analysis
-                const response = await analyzeWithOpenAI(htmlSnippet, content);
-                console.log('OpenAI response:', response);
-
-                // Check if the response contains a Puppeteer script
-                if (response && response.includes('require(\'puppeteer\')')) {
-                    const scriptFilename = `script_${Date.now()}.js`;
-                    await saveScriptToFile(response, scriptFilename);
-
-                    // Run the saved Puppeteer script and capture output
-                    const scriptOutput = await runSavedScript(scriptFilename);
-
-                    // If the script returns output, save it as a JSON file
-                    if (scriptOutput) {
-                        const jsonFilename = `${new URL(url).hostname}_output_${Date.now()}.json`;
-                        saveAsJson({ url, contentType: content, scriptOutput }, url, content);
-                    } else {
-                        console.log('No output from script execution, skipping JSON save.');
-                    }
-                } else {
-                    console.log('No relevant script found in the response, skipping JSON save.');
-                }
-            } else {
-                console.log('No relevant content found, skipping JSON save.');
+            while (!puppeteerScript || !puppeteerScript.includes('puppeteer')) {
+                attempts++;
+                console.log(`Attempt ${attempts}: Trying to get a valid script for URL: ${url}`);
+                puppeteerScript = await analyzeWithOpenAI(html, content);
+                progressBar.update(index + (attempts * 0.1)); // Update the progress bar with each attempt
             }
+
+            const scriptFilename = `script_${Date.now()}.js`;
+            const scriptPath = await saveScriptToFile(puppeteerScript, scriptFilename);
+
+            const scriptOutput = await runSavedScript(scriptPath);
+
+            if (scriptOutput) {
+                saveAsJson({ url, contentType: content, scriptOutput }, url, content);
+            } else {
+                console.log('No output from script execution, skipping JSON save, you might have to run it manually.');
+            }
+
         } catch (error) {
             console.error(`Error processing ${url}:`, error.message);
         }
+
+        progressBar.increment();
     }));
+
+    progressBar.stop();
 }
 
-// Function to run the saved Puppeteer script and capture output
-async function runSavedScript(scriptPath) {
-    try {
-        const { stdout, stderr } = await execPromise(`node ${scriptPath}`);
-        if (stderr) {
-            console.error('Error executing script:', stderr);
-        }
-        return stdout.trim(); // Return the captured output
-    } catch (error) {
-        console.error('Error running saved Puppeteer script:', error);
-        return null; // Return null if an error occurs or no output is found
-    }
+const urlsToProcess = process.env.URLS_TO_PROCESS ? JSON.parse(process.env.URLS_TO_PROCESS) : [];
+
+if (urlsToProcess.length === 0) {
+    console.error('Error: No URLs provided in the environment variable "URLS_TO_PROCESS".');
+    process.exit(1);
 }
 
-// Function to save data as JSON
-function saveAsJson(data, url, contentType) {
-    const { hostname } = new URL(url);
-    const filename = `${hostname}_${contentType.replace(/\s+/g, '_')}.json`;
-    const filePath = path.join(__dirname, filename);
+urlsToProcess.forEach(urlObject => {
+    console.log(`Processing URL: ${urlObject.url} for content type: ${urlObject.content}`);
+});
 
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    console.log(`Data saved to ${filePath}`);
+processUrls(urlsToProcess).catch(console.error);
+
+function limitHtmlSize(html, maxSize = 3000) {
+    return html.slice(0, maxSize);
 }
-
-const urlsToProcess = [
-    { url: 'https://www.example.com/blog', content: 'blog articles' },
-];
 
 processUrls(urlsToProcess).catch(console.error);
