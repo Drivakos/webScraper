@@ -19,7 +19,7 @@ async function scrapeWithPuppeteer(url) {
 
     const fullHtml = await page.evaluate(() => document.querySelector('html').innerHTML);
     const $ = cheerio.load(fullHtml);
-    $('script, meta, link, noscript').remove();
+    $('script, meta, link, noscript, style').remove();
     const mainContent = $('main').html() || '';
 
     await browser.close();
@@ -75,7 +75,8 @@ async function analyzeWithOpenAI(limitedHtmlSnippet, contentType) {
               "publicationDate": "...",
               "image": "...",
               "summary": "...",
-              "readMoreLink": "..."
+              "readMoreLink": "...",
+              any other useful info that can be utilized later
             }
           ]
 
