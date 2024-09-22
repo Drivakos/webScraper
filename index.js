@@ -117,17 +117,37 @@ async function analyzeWithOpenAI(limitedHtmlSnippet, contentType) {
     }
 }
 
-// Function to run the Puppeteer script
 async function runSavedScript(scriptPath) {
     try {
-        const { stdout, stderr } = await execPromise(`node ${scriptPath}`);
+        const { stdout, stderr } = await execPromise(`node "${scriptPath}"`);
+        console.log('Script stdout:', stdout);
+        console.error('Script stderr:', stderr);
 
-        if (stderr) {
-            console.error('Error executing script:', stderr);
+        const extractedDataPath = path.join(__dirname, 'extractedData', 'blog.json');
+
+        // Retry mechanism to wait for the JSON file to be created because the script takes some time to run
+        let attempts = 0;
+        const maxAttempts = 10;
+        const retryDelay = 1000;
+
+        while (attempts < maxAttempts) {
+            try {
+                await fs.access(extractedDataPath);
+                break;
+            } catch (err) {
+                attempts++;
+                console.log(`JSON file not found. Retrying in ${retryDelay / 1000} seconds... (${attempts}/${maxAttempts})`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+        }
+
+        if (attempts === maxAttempts) {
+            console.error(`JSON file not found after ${maxAttempts} attempts.`);
             return null;
         }
 
-        return stdout.trim();
+        const jsonData = await fs.readFile(extractedDataPath, 'utf-8');
+        return JSON.parse(jsonData);
     } catch (error) {
         console.error('Error running saved Puppeteer script:', error.message);
         return null;
@@ -218,7 +238,7 @@ async function processUrls(urls) {
             const extractedData = await runSavedScript(scriptPath);
 
             if (extractedData) {
-                await saveAsJson({ url, contentType: content, extractedData }, url, content);
+                await saveAsJson(extractedData, url, content);
             } else {
                 console.log('No output from script execution, skipping JSON save. You might have to run it manually.');
             }
