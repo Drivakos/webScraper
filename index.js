@@ -356,39 +356,58 @@ async function countFiles(directory) {
     }
 }
 
-function displayMenu() {
-    console.log("\nCLI Options:");
-    console.log("1: Start Scraping");
-    console.log("2: Clear Generated Files");
-    console.log("3: Exit");
-}
+(async () => {
+    try {
+        // Dynamic imports for chalk and figlet
+        const chalk = (await import('chalk')).default;
+        const figlet = (await import('figlet')).default;
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
+        // Create readline interface
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
 
-function handleUserInput(input) {
-    switch (input.trim()) {
-        case '1':
-            main().then(() => {
-                displayMenu();
-            });
-            break;
-        case '2':
-            clearAllData().then(() => {
-                displayMenu();
-            });
-            break;
-        case '3':
-            console.log('Exiting...');
-            rl.close();
-            break;
-        default:
-            console.log('Invalid option. Please select 1, 2, or 3.');
-            displayMenu();
+        // Function to display the menu
+        function displayMenu() {
+            console.log(chalk.blue.bold(figlet.textSync('CLI Menu', { horizontalLayout: 'full' })));
+            console.log(chalk.green("\nChoose an option:"));
+            console.log(chalk.cyan("1: ") + chalk.white("Start Scraping"));
+            console.log(chalk.cyan("2: ") + chalk.white("Clear Generated Files"));
+            console.log(chalk.cyan("3: ") + chalk.white("Exit"));
+            console.log(chalk.gray("\nType the number of your choice and press Enter."));
+        }
+
+        // Handle user input
+        function handleUserInput(input) {
+            switch (input.trim()) {
+                case '1':
+                    console.log(chalk.yellow('Starting the scraping process...'));
+                    main().then(() => {
+                        displayMenu();
+                    });
+                    break;
+                case '2':
+                    console.log(chalk.yellow('Clearing all generated files...'));
+                    clearAllData().then(() => {
+                        displayMenu();
+                    });
+                    break;
+                case '3':
+                    console.log(chalk.red('Exiting...'));
+                    rl.close();
+                    break;
+                default:
+                    console.log(chalk.red('Invalid option. Please select 1, 2, or 3.'));
+                    displayMenu();
+            }
+        }
+
+        // Setup readline and display the menu
+        displayMenu();
+        rl.on('line', handleUserInput);
+
+    } catch (error) {
+        console.error('Error loading modules:', error.message);
     }
-}
-
-displayMenu();
-rl.on('line', handleUserInput);
+})();
