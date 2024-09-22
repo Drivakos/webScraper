@@ -195,7 +195,9 @@ function limitHtmlSize(html, maxSize = 3000) {
 // Main function to process each URL
 async function processUrls(urls) {
     const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    progressBar.start(urls.length, 0);
+    const totalSteps = urls.length * 5; // Assume 5 steps per URL (adjust as needed)
+    progressBar.start(totalSteps, 0);
+
     const browser = await puppeteer.launch({ headless: "new" });
 
     for (const { url, content } of urls) {
@@ -203,16 +205,23 @@ async function processUrls(urls) {
 
         try {
             const { html, mainContent } = await scrapeWithPuppeteer(browser, url);
+            progressBar.increment();
+            console.log("Step 1: Scraping completed.");
 
+            // Step 2: Check for relevant content
             if (!hasRelevantContent(html, content)) {
                 console.log(`No relevant content found for content type: ${content}. Skipping.`);
-                progressBar.increment();
+                progressBar.increment(4);  // Skip remaining steps for this URL
                 continue;
             }
+            progressBar.increment();  // Increment after checking content
+            console.log("Step 2: Relevant content check completed.");
 
             const fullHtmlPath = await saveFullHtml(url, html);
-            const limitedHtmlSnippet = mainContent;
+            progressBar.increment();
+            console.log("Step 3: Saving HTML completed.");
 
+            const limitedHtmlSnippet = mainContent;
             let puppeteerScript = null;
             let attempts = 0;
             const maxAttempts = 3;
@@ -229,12 +238,15 @@ async function processUrls(urls) {
 
             if (!puppeteerScript) {
                 console.error(`Failed to generate a valid Puppeteer script for ${url} after ${maxAttempts} attempts.`);
-                progressBar.increment();
+                progressBar.increment(3);
                 continue;
             }
+            progressBar.increment();
+            console.log("Step 4: Puppeteer script generation completed.");
 
             const scriptFilename = `script_${Date.now()}.js`;
             const scriptPath = await saveScriptToFile(puppeteerScript, scriptFilename);
+
             const extractedData = await runSavedScript(scriptPath);
 
             if (extractedData) {
@@ -242,12 +254,13 @@ async function processUrls(urls) {
             } else {
                 console.log('No output from script execution, skipping JSON save. You might have to run it manually.');
             }
+            progressBar.increment();
+            console.log("Step 5: Script execution and JSON saving completed.");
 
         } catch (error) {
             console.error(`Error processing ${url}:`, error.message);
         }
 
-        progressBar.increment();
     }
 
     await browser.close();
