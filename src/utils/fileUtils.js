@@ -32,14 +32,12 @@ async function saveFullHtml(url, cleanedHtml) {
 async function saveAsJson(data, url, contentType) {
     const dataDir = path.join(__dirname, '..', 'generated', 'extractedData');
     await ensureDirectoryExists(dataDir);
-console.log('data dir is ', dataDir)
     try {
         const { hostname } = new URL(url);
         const sanitizedContentType = contentType.replace(/\s+/g, '_');
         console.log(sanitizedContentType)
         const filename = `${hostname}_${sanitizedContentType}_${Date.now()}.json`;
         const filePath = path.join(dataDir, filename);
-        console.log('filepath is', filePath)
         await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
         console.log(`Data saved to ${filePath}`);
     } catch (error) {

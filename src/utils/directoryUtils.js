@@ -21,6 +21,10 @@ async function clearDirectory(directory) {
             const filePath = path.join(directory, file);
             const fileStat = await fs.stat(filePath);
 
+            if (file === '.gitkeep') {
+                continue;
+            }
+
             if (fileStat.isDirectory()) {
                 await clearDirectory(filePath);
             } else {
