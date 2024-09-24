@@ -4,10 +4,15 @@ node_modules/
 # Ignore environment variables
 .env
 
-# Ignore  script generated content
-/src/generated/extractedData/
-/src/generated/html/
-/src/generated/scripts/
+# Ignore the contents of these subfolders, but keep the folders themselves
+/src/generated/extractedData/**
+!/src/generated/extractedData/.gitkeep
+
+/src/generated/html/**
+!/src/generated/html/.gitkeep
+
+/src/generated/scripts/**
+!/src/generated/scripts/.gitkeep
 
 # Ignore log files
 *.log
