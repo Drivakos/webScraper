@@ -1,19 +1,18 @@
 const path = require('path');
-const { scrapeWithPuppeteer } = require('./services/puppeteerService');
+const { scrapeWithPuppeteer, runSavedScript, launchBrowser } = require('./services/puppeteerService');
 const { analyzeWithOpenAI } = require('./services/openaiService');
-const { saveFile, saveAsJson, saveFullHtml, saveScriptToFile } = require('./utils/fileUtils');
+const { saveAsJson, saveFullHtml, saveScriptToFile } = require('./utils/fileUtils');
 const config = require('./config');
 const cliProgress = require("cli-progress");
-const puppeteer = require("puppeteer");
-const { scrapeAndAnalyze, hasRelevantContent} = require('./services/scrapperService')
+const { hasRelevantContent } = require('./services/scrapperService');
 require('dotenv').config();
 
 async function processUrls(urls) {
     const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    const totalSteps = urls.length * 5; // Assume 5 steps per URL (adjust as needed)
+    const totalSteps = urls.length * 5;
     progressBar.start(totalSteps, 0);
 
-    const browser = await puppeteer.launch({ headless: "new" });
+    const browser = await launchBrowser();
 
     for (const { url, content } of urls) {
         console.log(`\nProcessing URL: ${url} for content type: ${content}`);
@@ -23,16 +22,16 @@ async function processUrls(urls) {
             progressBar.increment();
             console.log("Step 1: Scraping completed.");
 
-            // Step 2: Check for relevant content
             if (!hasRelevantContent(html, content)) {
                 console.log(`No relevant content found for content type: ${content}. Skipping.`);
-                progressBar.increment(4);  // Skip remaining steps for this URL
+                progressBar.increment(4);
                 continue;
             }
-            progressBar.increment();  // Increment after checking content
+            progressBar.increment();
             console.log("Step 2: Relevant content check completed.");
 
-            const fullHtmlPath = await saveFullHtml(url, html);
+            const htmlDir = path.join(__dirname, '..', 'html');
+            const fullHtmlPath = await saveFullHtml(htmlDir, html);
             progressBar.increment();
             console.log("Step 3: Saving HTML completed.");
 
@@ -88,10 +87,7 @@ async function main() {
         console.error('No URLs to process.');
         return;
     }
-
-    for (const { url, content } of urls) {
-        await processUrls(url, content);
-    }
+    await processUrls(urls);
 }
 
 module.exports = {

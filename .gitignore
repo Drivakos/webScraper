@@ -4,17 +4,10 @@ node_modules/
 # Ignore environment variables
 .env
 
-# Ignore generated scripts
-scripts/
-
-# Ignore saved html
-html/
-
-# Ignore saved html
-extractedData/
-
-# Ignore OpenAI API key (if stored locally in a file)
-openai_key.txt
+# Ignore  script generated content
+/src/generated/extractedData/
+/src/generated/html/
+/src/generated/scripts/
 
 # Ignore log files
 *.log

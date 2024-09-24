@@ -1,6 +1,14 @@
 const fs = require('fs').promises;
 const path = require('path');
 
+async function ensureDirectoryExists(directory) {
+    try {
+        await fs.mkdir(directory, { recursive: true });
+    } catch (error) {
+        console.error(`Error creating directory ${directory}:`, error.message);
+    }
+}
+
 async function clearDirectory(directory) {
     try {
         const files = await fs.readdir(directory);
@@ -16,7 +24,6 @@ async function clearDirectory(directory) {
             if (fileStat.isDirectory()) {
                 await clearDirectory(filePath);
             } else {
-                // Delete the file
                 console.log(`Deleting file: ${filePath}`);
                 await fs.unlink(filePath);
             }
@@ -31,6 +38,4 @@ async function clearDirectory(directory) {
     }
 }
 
-module.exports = {
-    clearDirectory
-};
+module.exports = { ensureDirectoryExists, clearDirectory };

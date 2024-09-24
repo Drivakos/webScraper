@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const {URL} = require("url");
 
 async function ensureDirectoryExists(directory) {
     try {
@@ -19,7 +20,7 @@ async function saveFile(filePath, content) {
 }
 
 async function saveFullHtml(url, cleanedHtml) {
-    const htmlDir = path.join(__dirname, '..', 'html'); // Adjusted path if refactored
+    const htmlDir = path.join(__dirname, '..', 'generated', 'html');
     await ensureDirectoryExists(htmlDir);
     const filename = `body.html`;
     const filePath = path.join(htmlDir, filename);
@@ -29,14 +30,16 @@ async function saveFullHtml(url, cleanedHtml) {
 
 // Function to save data as JSON
 async function saveAsJson(data, url, contentType) {
-    const dataDir = path.join(__dirname, 'extractedData');
+    const dataDir = path.join(__dirname, '..', 'generated', 'extractedData');
     await ensureDirectoryExists(dataDir);
-
+console.log('data dir is ', dataDir)
     try {
         const { hostname } = new URL(url);
         const sanitizedContentType = contentType.replace(/\s+/g, '_');
+        console.log(sanitizedContentType)
         const filename = `${hostname}_${sanitizedContentType}_${Date.now()}.json`;
         const filePath = path.join(dataDir, filename);
+        console.log('filepath is', filePath)
         await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
         console.log(`Data saved to ${filePath}`);
     } catch (error) {
@@ -45,7 +48,7 @@ async function saveAsJson(data, url, contentType) {
 }
 
 async function saveScriptToFile(scriptContent, filename) {
-    const scriptsDir = path.join(__dirname, 'scripts');
+    const scriptsDir = path.join(__dirname, '..', 'generated', 'scripts');
     await ensureDirectoryExists(scriptsDir);
 
     const filePath = path.join(scriptsDir, filename);
@@ -57,13 +60,11 @@ async function saveScriptToFile(scriptContent, filename) {
     await fs.writeFile(filePath, cleanedScript.trim(), 'utf8');
     console.log(`Script saved to: ${filePath}`);
 
-    return filePath; // Return the script path
+    return filePath;
 }
 
-module.exports = {
-    ensureDirectoryExists,
-    saveFile,
-    saveFullHtml,
-    saveAsJson,
-    saveScriptToFile
-};
+function limitHtmlSize(html, maxSize = 3000) {
+    return html.slice(0, maxSize);
+}
+
+module.exports = { saveFile, saveAsJson, limitHtmlSize, saveFullHtml, saveScriptToFile, ensureDirectoryExists };

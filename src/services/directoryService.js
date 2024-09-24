@@ -3,9 +3,9 @@ const path = require('path');
 
 async function clearAllData() {
     const directories = [
-        path.join(__dirname, '..', '..', 'extractedData'),
-        path.join(__dirname, '..', '..', 'scripts'),
-        path.join(__dirname, '..', '..', 'html')
+        path.join(__dirname, '..', 'generated', 'extractedData'),
+        path.join(__dirname, '..', 'generated', 'scripts'),
+        path.join(__dirname, '..', 'generated', 'html')
     ];
 
     for (const dir of directories) {

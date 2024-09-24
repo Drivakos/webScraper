@@ -18,8 +18,8 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
             content: `Analyze the following HTML and determine the best way to extract the content related to 
             "${contentType}". Generate a Puppeteer script that extracts titles (h1, h2, h3), summaries (p, div), 
             URLs (a), and images (img). 
-            The Puppeteer script should read the HTML from filePath = path.join(__dirname, '..', 'html', 'body.html');
-            and save the extracted data as JSON to jsonPath = path.join(__dirname, '..', 'extractedData', 'blog.json').
+            The Puppeteer script should read the HTML from filePath = path.join(__dirname, '..' , '..', 'generated', 'html', 'body.html');
+            and save the extracted data as JSON to jsonPath = path.join(__dirname, '..' , '..', 'generated', 'extractedData', 'blog.json').
             The data should be structured as below if possible:
             "blogPosts": [
                 {
