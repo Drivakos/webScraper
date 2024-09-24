@@ -1,7 +1,7 @@
 # Web Scraper with OpenAI Integration
 
 This project is a **web scraper** that uses **Puppeteer** for scraping web pages and **OpenAI** for analyzing the scraped content.  
-The scraper extracts HTML from target URLs, processes it with OpenAI to generate Puppeteer scripts, and saves the data in structured JSON files.
+The scraper extracts HTML from target URLs, processes it with OpenAI to generate Puppeteer scripts, and saves the data extracted data based on the keywords provided in structured JSON files.
 
 ## Features
 
