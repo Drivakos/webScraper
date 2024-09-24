@@ -1,14 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const {URL} = require("url");
-
-async function ensureDirectoryExists(directory) {
-    try {
-        await fs.mkdir(directory, { recursive: true });
-    } catch (error) {
-        console.error(`Error creating directory ${directory}:`, error.message);
-    }
-}
+const { ensureDirectoryExists } = require('../utils/directoryUtils')
 
 async function saveFile(filePath, content) {
     try {
@@ -28,7 +21,6 @@ async function saveFullHtml(url, cleanedHtml) {
     return filePath;
 }
 
-// Function to save data as JSON
 async function saveAsJson(data, url, contentType) {
     const dataDir = path.join(__dirname, '..', 'generated', 'extractedData');
     await ensureDirectoryExists(dataDir);
@@ -65,4 +57,4 @@ function limitHtmlSize(html, maxSize = 3000) {
     return html.slice(0, maxSize);
 }
 
-module.exports = { saveFile, saveAsJson, limitHtmlSize, saveFullHtml, saveScriptToFile, ensureDirectoryExists };
+module.exports = { saveFile, saveAsJson, limitHtmlSize, saveFullHtml, saveScriptToFile };
