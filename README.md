@@ -40,23 +40,23 @@ Puppeteer: Puppeteer is used for scraping web pages.
 OpenAI API: You'll need an OpenAI API key to use the content analysis feature.  
 
 **Installation**  
-1.Clone the repository  
+1. Clone the repository  
 ```bash
 git clone https://github.com/your-username/web-scraper.git
 ```
-2.Navigate to the project directory:  
+2. Navigate to the project directory:  
 ```bash
 cd web-scraper
 ```
-3.Install the dependencies:  
+3. Install the dependencies:  
 ```bash
 npm install
 ```
-4.Set up the environment variables by creating a .env file in the project root:  
+4. Set up the environment variables by creating a .env file in the project root:  
 ```bash
 touch .env
 ```
-5.Add the following variables to your .env file:  
+5. Add the following variables to your .env file:  
 ```bash
 OPENAI_API_KEY=your-openai-api-key
 URLS_TO_PROCESS=[{"url":"https://example.com", "content":"blog articles"}]
