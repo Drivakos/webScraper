@@ -1,14 +1,16 @@
-const { scrapeWithPuppeteer } = require('./puppeteerService');
-const { saveFile } = require('../utils/fileUtils');
+const natural = require('natural');
 
+function preprocess(text) {
+    const tokenizer = new natural.WordTokenizer();
+    const stemmer = natural.PorterStemmer;
+    return tokenizer.tokenize(text.toLowerCase())
+        .map(word => stemmer.stem(word));
+}
 
 function hasRelevantContent(html, contentType) {
-    const relevantKeywords = {
-        'blog articles': ['blog', 'article', 'post'],
-        'product data': ['product', 'price', 'sale']
-    };
-    const keywords = relevantKeywords[contentType] || [];
-    return keywords.some(keyword => html.toLowerCase().includes(keyword));
+    const processedHTML = preprocess(html);
+    const processedContentType = preprocess(contentType).flat();
+    return processedContentType.some(keyword => processedHTML.includes(keyword));
 }
 
 module.exports = {
