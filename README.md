@@ -14,24 +14,30 @@ The scraper extracts HTML from target URLs, processes it with OpenAI to generate
 ## Project Structure
 
 ```bash
+
 /project-root
 ├── /generated
 │   ├── /extractedData  # Stores JSON output of extracted data
 │   ├── /html           # Stores HTML files scraped from websites
 │   └── /scripts        # Stores generated Puppeteer scripts
 ├── /src
+│   ├── /migrations     # MongoDB migration scripts
+│   │   └── default_migration.js  # Default migration script to set up initial collections
 │   ├── /utils
 │   │   ├── fileUtils.js         # File-related utilities (e.g., saving files, ensuring directories exist)
 │   │   └── directoryUtils.js    # Utilities for managing directories
 │   ├── /services
 │   │   ├── openaiService.js     # Handles communication with OpenAI API
 │   │   ├── puppeteerService.js  # Manages Puppeteer browser sessions and scraping logic
-│   │   └── scraperService.js    # Scraping logic and relevant content checking
-│   ├── cli.js                   # Command-line interface for user interactions
+│   │   ├── scraperService.js    # Scraping logic and relevant content checking
+│   │   ├── db.js                # MongoDB connection and database management
+│   │   ├── directoryService.js  # Services related to clearing directories
+│   │   └── migrationService.js  # Handles applying and managing MongoDB migrations
+│   ├── cli.js                   # Command-line interface for user interactions, including migrations
 │   ├── config.js                # Configuration for the project (API keys, URLs to process)
 │   └── app.js                   # Main application logic, processing URLs and orchestrating services
 ├── package.json
-└── .env                         # Environment variables (API keys, URLs to process)
+└── .env                         # Environment variables (API keys, MongoDB connection string, URLs to process)
 
 ```
 **Requirements**  
