@@ -33,6 +33,7 @@ The scraper extracts HTML from target URLs, processes it with OpenAI to generate
 │   │   ├── db.js                # MongoDB connection and database management
 │   │   ├── directoryService.js  # Services related to clearing directories
 │   │   └── migrationService.js  # Handles applying and managing MongoDB migrations
+│   ├── db.js                    # MongoDB connection and database management
 │   ├── cli.js                   # Command-line interface for user interactions, including migrations
 │   ├── config.js                # Configuration for the project (API keys, URLs to process)
 │   └── app.js                   # Main application logic, processing URLs and orchestrating services
