@@ -77,7 +77,7 @@ async function processUrls(urls) {
                     .replace(/```javascript/g, '')
                     .replace(/```/g, '')
                     .replace(/This Puppeteer script[\s\S]*$/, '')
-                    .trim();  // Ensure no extra whitespace or new lines
+                    .trim();
 
                 console.log("Generated and cleaned Puppeteer script.");
 
@@ -88,7 +88,6 @@ async function processUrls(urls) {
                 puppeteerScript = cleanedScript;
                 progressBar.increment();
 
-                // Save Puppeteer script locally for execution
                 const scriptFilename = `script_${Date.now()}.js`;
                 scriptPath = await saveScriptToFile(puppeteerScript, scriptFilename);
                 console.log("Saved generated Puppeteer script locally.");
@@ -109,10 +108,9 @@ async function processUrls(urls) {
                         last_scraped_at: new Date()
                     };
 
-                    // Remove the _id field if it exists to avoid trying to update it
                     delete dataDoc._id;
 
-                    await db.collection('scraped_data').insertOne(dataDoc);  // Save data to MongoDB collection
+                    await db.collection('scraped_data').insertOne(dataDoc);
                     console.log("Saved extracted data to MongoDB.");
 
                     await db.collection('links').updateOne({ url }, { $set: dataDoc }, { upsert: true });
