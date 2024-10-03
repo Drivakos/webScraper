@@ -66,8 +66,8 @@ async function displayMenu() {
     console.log(chalk.green("\nChoose an option:"));
     console.log(chalk.cyan("1: ") + chalk.white("Start Scraping"));
     console.log(chalk.cyan("2: ") + chalk.white("Clear Generated Files"));
-    console.log(chalk.cyan("3: ") + chalk.white("Run or Create MongoDB Migration"));
-    console.log(chalk.cyan("4: ") + chalk.white("Clear DB Links and Scripts"));
+    console.log(chalk.cyan("3: ") + chalk.white("Clear DB Links and Scripts"));
+    console.log(chalk.cyan("4: ") + chalk.white("Run or Create MongoDB Migration"));
     console.log(chalk.cyan("5: ") + chalk.white("Exit"));
     console.log(chalk.gray("\nType the number of your choice and press Enter."));
 }
@@ -87,16 +87,17 @@ rl.on('line', async (input) => {
             rl.close();
             break;
         case '3':
-            console.log('Running default migration...');
-            await applyDefaultMigration();
-            rl.close();
-            break;
-        case '4':
             console.log('Clearing database links and scripts...');
             const clearDbLinksAndScriptsModule = await dbModule();
             await clearDbLinksAndScriptsModule.clearDbLinksAndScripts();
             rl.close();
             break;
+        case '4':
+            console.log('Running default migration...');
+            await applyDefaultMigration();
+            rl.close();
+            break;
+
         case '5':
             console.log('Exiting...');
             rl.close();

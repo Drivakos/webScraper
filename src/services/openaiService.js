@@ -16,7 +16,8 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
         {
             role: 'user',
             content: `Analyze the following HTML and determine the best way to extract the content related to 
-            "${contentType}". Generate a Puppeteer script that extracts titles (h1, h2, h3), summaries (p, div), 
+            "${contentType}".
+            Generate a Puppeteer script that extracts titles (h1, h2, h3), summaries, 
             URLs (a), and images (img). 
             The Puppeteer script should read the HTML from filePath = path.join(__dirname, '..' , '..', 'generated', 'html', 'body.html');
             and save the extracted data as JSON to jsonPath = path.join(__dirname, '..' , '..', 'generated', 'extractedData', 'blog.json').
@@ -27,7 +28,7 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
                     "url": "...",
                     "publicationDate": "...",
                     "image": "...",
-                    "Main content": "(dynamic identification of the correct container)"
+                    "content": "..."
                     "readMoreLink": "...",
                     "anyOtherUsefulInfo": "..."
                 }
@@ -36,7 +37,7 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
             ---- HTML ----
             ${htmlSnippet}
             ----------------
-
+            Dynamically assign the class that wraps the content
             Respond only with a valid JavaScript Puppeteer script ready to be executed, no description or explanation.`
         }
 
