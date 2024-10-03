@@ -8,10 +8,10 @@ async function clearAllData() {
         path.join(__dirname, '..', 'generated', 'html')
     ];
 
-    for (const dir of directories) {
+    await Promise.all(directories.map(async dir => {
         console.log(`Clearing directory: ${dir}`);
         await clearDirectory(dir);
-    }
+    }));
 
     console.log('All specified directories cleared.');
 }

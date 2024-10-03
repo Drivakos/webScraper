@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
-const { limitHtmlSize } = require('../utils/fileUtils')
+const { limitHtmlSize } = require('../utils/fileUtils');
 const util = require("util");
 const {exec} = require("child_process");
 const execPromise = util.promisify(exec);
@@ -8,7 +8,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 async function launchBrowser() {
-    return await puppeteer.launch({headless: 'new'});
+    return await puppeteer.launch({ headless: 'new' });
 }
 
 async function scrapeWithPuppeteer(browser, url) {
@@ -25,7 +25,7 @@ async function scrapeWithPuppeteer(browser, url) {
         console.error(`Error scraping ${url}:`, error.message);
         return null;
     } finally {
-        await page.close();
+        if (page) await page.close();
     }
 }
 
@@ -61,7 +61,7 @@ async function runSavedScript(scriptPath) {
         const jsonData = await fs.readFile(extractedDataPath, 'utf-8');
         return JSON.parse(jsonData);
     } catch (error) {
-        console.error('Error running saved Puppeteer script:', error.message);
+        console.error('Error running Puppeteer script:', error.message);
         return null;
     }
 }

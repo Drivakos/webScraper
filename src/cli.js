@@ -18,6 +18,10 @@ async function loadClearAllDataService() {
     return await import('./services/directoryService.js');
 }
 
+async function ClearDbLinks() {
+    return await import('./services/db.js')
+}
+
 async function displayMenu() {
     const { chalk, figlet } = await loadChalkAndFiglet();
 
@@ -25,7 +29,8 @@ async function displayMenu() {
     console.log(chalk.green("\nChoose an option:"));
     console.log(chalk.cyan("1: ") + chalk.white("Start Scraping"));
     console.log(chalk.cyan("2: ") + chalk.white("Clear Generated Files"));
-    console.log(chalk.cyan("3: ") + chalk.white("Exit"));
+    console.log(chalk.cyan("3: ") + chalk.white("Clear Database"));
+    console.log(chalk.cyan("4: ") + chalk.white("Exit"));
     console.log(chalk.gray("\nType the number of your choice and press Enter."));
 }
 
@@ -44,11 +49,17 @@ rl.on('line', async (input) => {
             rl.close();
             break;
         case '3':
+            console.log('Clearing database links and scripts...');
+            const clearDbLinksModule = await ClearDbLinks();
+            await clearDbLinksModule.clearDbLinksAndScripts();
+            rl.close();
+            break;
+        case '4':
             console.log('Exiting...');
             rl.close();
             break;
         default:
-            console.log('Invalid option. Please select 1, 2, or 3.');
+            console.log('Invalid option. Please select 1, 2, 3 or 4.');
             await displayMenu();
     }
 });

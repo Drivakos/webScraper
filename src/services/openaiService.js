@@ -11,7 +11,7 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
         {
             role: 'system',
             content: `You are an AI assistant that analyzes HTML content and provides Puppeteer scripts for extracting
-            specific content based on content types such as 'blog articles' or 'product data'.`
+            specific content based on content types such as "${contentType}".`
         },
         {
             role: 'user',
@@ -27,7 +27,7 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
                     "url": "...",
                     "publicationDate": "...",
                     "image": "...",
-                    "summary": "...",
+                    "Main content": "(dynamic identification of the correct container)"
                     "readMoreLink": "...",
                     "anyOtherUsefulInfo": "..."
                 }
@@ -39,26 +39,33 @@ async function analyzeWithOpenAI(htmlSnippet, contentType) {
 
             Respond only with a valid JavaScript Puppeteer script ready to be executed, no description or explanation.`
         }
-    ];
+
+    ]
 
     const maxRetries = 3;
     let attempt = 0;
     let delay = 1000;
+    const maxDelay = 8000;
 
     while (attempt < maxRetries) {
         try {
             const response = await openai.createChatCompletion({
-                model: 'gpt-4o-mini',
+                model: 'gpt-4o',
                 messages: messages,
                 max_tokens: 2000
             });
-            return response.data.choices[0].message.content.trim();
+            if (response && response.data && response.data.choices && response.data.choices.length > 0) {
+                return response.data.choices[0].message.content.trim();
+            } else {
+                console.error('Unexpected response format from OpenAI API.');
+                return null;
+            }
         } catch (error) {
             if (error.response && error.response.status === 429) {
                 console.error("Rate limit hit. Retrying after delay...");
                 attempt++;
                 await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
+                delay = Math.min(delay * 2, maxDelay);
             } else {
                 console.error("Error during OpenAI API call:", error.message, error);
                 return null;
